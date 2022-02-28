@@ -4,11 +4,11 @@ import java.util.Iterator;
 
 public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     private class Node {
-        public T item;
-        public Node prev;
-        public Node next;
+        private T item;
+        private Node prev;
+        private Node next;
 
-        public Node(T item, Node prev, Node next) {
+        Node(T item, Node prev, Node next) {
             this.item = item;
             this.prev = prev;
             this.next = next;
@@ -92,22 +92,25 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         return p.item;
     }
 
+    private T getRecursiveHelper(int index, Node cur) {
+        if (index == 0) {
+            return cur.item;
+        }
+        return getRecursiveHelper(index - 1, cur.next);
+    }
+
     public T getRecursive(int index) {
         if (index < 0 || index >= size) {
             return null;
         }
-        if (index == 0) {
-            return sentinel.next.item;
-        }
-        removeFirst();
-        return getRecursive(index - 1);
+        return getRecursiveHelper(index, sentinel.next);
     }
 
     private class LinkedListIterator implements Iterator<T> {
         private int pos;
         private Node cur;
 
-        public LinkedListIterator() {
+        LinkedListIterator() {
             pos = 0;
             cur = sentinel.next;
         }
@@ -131,9 +134,14 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
     }
 
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (o instanceof LinkedListDeque) {
-            LinkedListDeque<T> other = (LinkedListDeque<T>) o;
+        if (this == o) {
+            return true;
+        }
+        if (o instanceof Deque) {
+            Deque<T> other = (Deque<T>) o;
+            if (this.size() != other.size()) {
+                return false;
+            }
             for (int i = 0; i < size; i += 1) {
                 if (!this.get(i).equals(other.get(i))) {
                     return false;

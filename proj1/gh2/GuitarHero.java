@@ -14,18 +14,20 @@ public class GuitarHero {
             if (StdDraw.hasNextKeyTyped()) {
                 char key = StdDraw.nextKeyTyped();
                 int idx = keyboard.indexOf(key);
-                if (idx < 0) continue;
+                if (idx < 0) {
+                    continue;
+                }
                 strings[idx].pluck();
             }
 
-                double sample = 0;
-                for (var string : strings) {
-                    sample += string.sample();
-                }
-                StdAudio.play(sample);
-                for (var string : strings) {
-                    string.tic();
-                }
+            double sample = 0;
+            for (var string : strings) {
+                sample += string.sample();
+            }
+            StdAudio.play(sample);
+            for (var string : strings) {
+                string.tic();
+            }
         }
     }
 }

@@ -1,13 +1,14 @@
 package deque;
 
+import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
 
-import java.util.Comparator;
+
 
 import static org.junit.Assert.*;
 
-public class TestAlist {
+public class AlistDeque {
     @Test
     public void testThreeAddThreeRemove() {
         ArrayDeque<Integer> a = new ArrayDeque<>();
@@ -79,5 +80,18 @@ public class TestAlist {
         }
         assertEquals(a.get(0), b.get(0));
         assertEquals(a.size(), b.size());
+    }
+
+    @Test
+    public void equalsTest() {
+        LinkedListDeque<Integer> m = new LinkedListDeque<>();
+        m.addLast(5);
+        m.addLast(6);
+        m.addLast(7);
+        ArrayDeque<Integer> n = new ArrayDeque<>();
+        n.addLast(5);
+        n.addLast(6);
+        n.addLast(7);
+        assertEquals(true, m.equals(n));
     }
 }
