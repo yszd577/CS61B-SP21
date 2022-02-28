@@ -74,7 +74,9 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public T removeFirst() {
-        if (isEmpty()) { return null; }
+        if (isEmpty()) {
+            return null;
+        }
         if (items.length >= 16 && size < items.length / 4) {
             resizeSmall(items.length / 2);
         }
@@ -86,7 +88,9 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     @Override
     public T removeLast() {
-        if (isEmpty()) { return null; }
+        if (isEmpty()) {
+            return null;
+        }
         if (items.length >= 16 && size < items.length / 4) {
             resizeSmall(items.length / 2);
         }

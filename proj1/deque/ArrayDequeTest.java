@@ -8,7 +8,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class AlistDeque {
+public class ArrayDequeTest {
     @Test
     public void testThreeAddThreeRemove() {
         ArrayDeque<Integer> a = new ArrayDeque<>();
