@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class BSTMap<K extends Comparable<K>, V>  implements Map61B<K, V> {
-    BSTNode root;
+    private BSTNode root;
 
     private class BSTNode {
         private K key;
@@ -162,6 +162,10 @@ public class BSTMap<K extends Comparable<K>, V>  implements Map61B<K, V> {
     @Override
     public Iterator<K> iterator() {
         return keySet().iterator();
+    }
+
+    public void printInOrder() {
+        System.out.println(keySet());
     }
 
 }
