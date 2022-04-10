@@ -115,17 +115,21 @@ public class Repository {
     }
 
     public static void add(String fileName) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         File addFile = new File(fileName);
         if (!addFile.exists()) {
             message("File does not exist.");
-            System.exit(0);
+            return;
         }
+        removeMap.remove(fileName);
         String fileContent = sha1(readContentsAsString(addFile));
         String existContent = Commit.getCommit(headSha1).getFileMap().get(fileName);
         if (fileContent.equals(existContent)) {
             if (addMap.containsKey(fileName)) {
-                restrictedDelete(join(BLOB_DIR, addMap.get(fileName)));
                 addMap.remove(fileName);
             }
         } else {
@@ -139,7 +143,15 @@ public class Repository {
     }
 
     public static void commit(String msg) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
+        if (msg.length() == 0) {
+            message("Please enter a commit message.");
+            return;
+        }
         if (addMap.isEmpty()) {
             message("No changes added to the commit.");
             return;
@@ -168,10 +180,15 @@ public class Repository {
     }
 
     public static void rm(String fileName) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         Map<String, String> fileMap = Commit.getCommit(headSha1).getFileMap();
-        if (!addMap.containsKey(fileName) && fileMap.containsKey(fileName)) {
+        if (!addMap.containsKey(fileName) && !fileMap.containsKey(fileName)) {
             message("No reason to remove the file.");
+            return;
         }
         addMap.remove(fileName);
         if (fileMap.containsKey(fileName)) {
@@ -182,6 +199,10 @@ public class Repository {
     }
 
     public static void log() {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         Commit current = Commit.getCommit(headSha1);
         while (true) {
@@ -203,6 +224,10 @@ public class Repository {
     }
 
     public static void globalLog() {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         List<String> commitTree = plainFilenamesIn(COMMIT_DIR);
         for (String commitSHA1 : commitTree) {
             Commit current = Commit.getCommit(commitSHA1);
@@ -215,6 +240,10 @@ public class Repository {
     }
 
     public static void find(String msg) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         boolean flag = false;
         List<String> commitTree = plainFilenamesIn(COMMIT_DIR);
         for (String commitSHA1 : commitTree) {
@@ -230,6 +259,10 @@ public class Repository {
     }
 
     public static void status() {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         System.out.println("=== Branches ===");
         for (String branchName : branch.keySet()) {
@@ -291,6 +324,10 @@ public class Repository {
     }
 
     public static void checkout(String[] args) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         if (args.length == 3) {
             String fileName = args[2];
@@ -307,9 +344,11 @@ public class Repository {
             String givenBranch = args[1];
             if (givenBranch.equals(head)) {
                 message("No need to checkout the current branch.");
+                return;
             }
             if (!branch.containsKey(givenBranch)) {
                 message("No such branch exists.");
+                return;
             }
             head = givenBranch;
             resetCommitId(branch.get(head));
@@ -325,7 +364,7 @@ public class Repository {
             if (!currentFileMap.containsKey(file) && givenFileMap.containsKey(file)) {
                 message("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
-                System.exit(0);
+                return;
             }
             if (currentFileMap.containsKey(file) && !givenFileMap.containsKey(file)) {
                 restrictedDelete(file);
@@ -369,6 +408,10 @@ public class Repository {
     }
 
     public static void branch(String branchName) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         branch.keySet().forEach(k -> {
             if (k.equals(branchName)) {
@@ -380,21 +423,32 @@ public class Repository {
     }
 
     public static void rmBranch(String branchName) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         if (!branch.containsKey(branchName)) {
             message("A branch with that name does not exist.");
+            return;
         }
         if (head.equals(branchName)) {
             message("Cannot remove the current branch.");
+            return;
         }
         branch.remove(branchName);
         save();
     }
 
     public static void reset(String commitId) {
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
         load();
         if (!checkCommitExists(commitId)) {
             message("No commit with that id exists.");
+            return;
         }
         resetCommitId(expand(commitId));
         branch.put(head, commitId);
@@ -402,7 +456,10 @@ public class Repository {
     }
 
     public static void merge(String branchName) {
-
+        if (!GITLET_DIR.exists()) {
+            message("Not in an initialized Gitlet directory.");
+            return;
+        }
     }
 }
 
