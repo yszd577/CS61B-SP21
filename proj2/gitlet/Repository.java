@@ -1,6 +1,11 @@
 package gitlet;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.*;
+
+
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
@@ -9,7 +14,7 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Raiden Ei
  */
 public class Repository {
     /**
@@ -24,6 +29,381 @@ public class Repository {
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
+    /** The blob directory. */
+    public static final File BLOB_DIR = join(GITLET_DIR, "blob");
+    /** The commit directory */
+    public static final File COMMIT_DIR = join(GITLET_DIR, "commit");
+
+    /** Staged for addition. */
+    public static final File ADDITION = join(GITLET_DIR, "addition");
+    /** Staged for removal. */
+    public static final File REMOVAL = join(GITLET_DIR, "removal");
+
+    /** Head pointer and branch pointer. */
+    private static String head;
+    private static Map<String, String> branch;
+    private static String headSha1;
+
+    /** Pointer file. */
+    public static final File HEAD = join(GITLET_DIR, "head");
+    public static final File BRANCH = join(GITLET_DIR, "branch");
+
+    /** Stage area map. */
+    private static Map<String, String> addMap;
+    private static Map<String, String> removeMap;
+
+    /** Commit id set. */
+    private static Set<String> commitIdSet;
+
+    /** Commit id set file. */
+    public static final File COMMITID = join(GITLET_DIR, "commitId");
 
     /* TODO: fill in the rest of this class. */
+
+
+    public static void init() {
+        if (GITLET_DIR.exists()) {
+            message("A Gitlet version-control system already exists in the current directory.");
+        }
+        initialization();
+        load();
+        Commit initialCommit = new Commit();
+        File initialCommitFile = join(COMMIT_DIR, "initialCommit");
+        writeObject(initialCommitFile, initialCommit);
+        String commitSha1 = sha1(readContents(initialCommitFile));
+        initialCommitFile.renameTo(join(COMMIT_DIR, commitSha1));
+        head = "master";
+        branch.put("master", commitSha1);
+        commitIdSet.add(commitSha1);
+        save();
+    }
+
+    private static void initialization() {
+        GITLET_DIR.mkdir();
+        BLOB_DIR.mkdir();
+        COMMIT_DIR.mkdir();
+        try {
+            ADDITION.createNewFile();
+            REMOVAL.createNewFile();
+            COMMITID.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        head = "start";
+        addMap = new TreeMap<>();
+        removeMap = new TreeMap<>();
+        commitIdSet = new HashSet<>();
+        branch = new HashMap<>();
+        save();
+    }
+
+    private static void load() {
+        head = readObject(HEAD, String.class);
+        branch = readObject(BRANCH, HashMap.class);
+        headSha1 = branch.get(head);
+        addMap = readObject(ADDITION, TreeMap.class);
+        removeMap = readObject(REMOVAL, TreeMap.class);
+        commitIdSet = readObject(COMMITID, HashSet.class);
+    }
+
+    private static void save() {
+        writeObject(HEAD, head);
+        writeObject(BRANCH, (Serializable) branch);
+        writeObject(ADDITION, (Serializable) addMap);
+        writeObject(REMOVAL, (Serializable) removeMap);
+        writeObject(COMMITID, (Serializable) commitIdSet);
+    }
+
+    public static void add(String fileName) {
+        load();
+        File addFile = new File(fileName);
+        if (!addFile.exists()) {
+            message("File does not exist.");
+            System.exit(0);
+        }
+        String fileContent = sha1(readContentsAsString(addFile));
+        String existContent = Commit.getCommit(headSha1).getFileMap().get(fileName);
+        if (fileContent.equals(existContent)) {
+            if (addMap.containsKey(fileName)) {
+                restrictedDelete(join(BLOB_DIR, addMap.get(fileName)));
+                addMap.remove(fileName);
+            }
+        } else {
+            writeContents(join(BLOB_DIR, fileContent), readContentsAsString(addFile));
+            if (addMap.containsKey(fileName)) {
+                restrictedDelete(join(BLOB_DIR, addMap.get(fileName)));
+            }
+            addMap.put(fileName, fileContent);
+        }
+        save();
+    }
+
+    public static void commit(String msg) {
+        load();
+        if (addMap.isEmpty()) {
+            message("No changes added to the commit.");
+            return;
+        }
+        Commit current = new Commit(msg, headSha1);
+        if (!addMap.isEmpty()) {
+            for (String fileName: addMap.keySet()) {
+                current.put(fileName, addMap.get(fileName));
+                addMap.remove(fileName);
+            }
+        }
+        if (!removeMap.isEmpty()) {
+            for (String fileName : removeMap.keySet()) {
+                current.remove(fileName);
+                removeMap.remove(fileName);
+            }
+        }
+        File tempFile = join(COMMIT_DIR, "tempCommit");
+        writeObject(tempFile, current);
+        String commitSha1 = sha1(readContents(tempFile));
+        tempFile.renameTo(join(COMMIT_DIR, commitSha1));
+        headSha1 = commitSha1;
+        commitIdSet.add(headSha1);
+        branch.put(head, headSha1);
+        save();
+    }
+
+    public static void rm(String fileName) {
+        load();
+        Map<String, String> fileMap = Commit.getCommit(headSha1).getFileMap();
+        if (!addMap.containsKey(fileName) && fileMap.containsKey(fileName)) {
+            message("No reason to remove the file.");
+        }
+        addMap.remove(fileName);
+        if (fileMap.containsKey(fileName)) {
+            removeMap.put(fileName, fileMap.get(fileName));
+            restrictedDelete(fileName);
+        }
+        save();
+    }
+
+    public static void log() {
+        load();
+        Commit current = Commit.getCommit(headSha1);
+        while (true) {
+            System.out.println("===");
+            System.out.println("commit " + headSha1);
+            // merge???????
+            // if (current.getAnotherParent() != null) {
+            // System.out.println("Merge: ");
+            // }
+            System.out.println(current.getDate());
+            System.out.println(current.getMessage());
+            System.out.println();
+            headSha1 = current.getParent();
+            if (headSha1 == null) {
+                break;
+            }
+            current = Commit.getCommit(headSha1);
+        }
+    }
+
+    public static void globalLog() {
+        List<String> commitTree = plainFilenamesIn(COMMIT_DIR);
+        for (String commitSHA1 : commitTree) {
+            Commit current = Commit.getCommit(commitSHA1);
+            System.out.println("===");
+            System.out.println("commit " + commitSHA1);
+            System.out.println(current.getDate());
+            System.out.println(current.getMessage());
+            System.out.println();
+        }
+    }
+
+    public static void find(String msg) {
+        boolean flag = false;
+        List<String> commitTree = plainFilenamesIn(COMMIT_DIR);
+        for (String commitSHA1 : commitTree) {
+            Commit current = Commit.getCommit(commitSHA1);
+            if (current.getMessage().equals(msg)) {
+                System.out.println(commitSHA1);
+                flag = true;
+            }
+        }
+        if (!flag) {
+            message("Found no commit with that message.");
+        }
+    }
+
+    public static void status() {
+        load();
+        System.out.println("=== Branches ===");
+        for (String branchName : branch.keySet()) {
+            if (branchName.equals(head)) {
+                System.out.println("*" + branchName);
+            } else {
+                System.out.println(branchName);
+            }
+        }
+        System.out.println();
+        Map<String, String> modifyNotStaged = new TreeMap<>();
+        System.out.println("=== Staged Files ===");
+        for (var addFile : addMap.keySet()) {
+            System.out.println(addFile);
+            File tempFile = new File(addFile);
+            if (!tempFile.exists()) {
+                modifyNotStaged.put(addFile, "deleted");
+            } else {
+                String currentContent = sha1(readContentsAsString(tempFile));
+                if (!currentContent.equals(addMap.get(addFile))) {
+                    modifyNotStaged.put(addFile, "modified");
+                }
+            }
+        }
+        System.out.println();
+        System.out.println("=== Removed Files ===");
+        for (var removeFile : removeMap.keySet()) {
+            System.out.println(removeFile);
+        }
+        System.out.println();
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        Map<String, String> fileMap = Commit.getCommit(headSha1).getFileMap();
+        for (var file : fileMap.keySet()) {
+            File tempFile = new File(file);
+            if (!tempFile.exists() && !removeMap.containsKey(file)) {
+                modifyNotStaged.put(file, "deleted");
+            }
+            if (tempFile.exists()) {
+                String fileContent = sha1(readContentsAsString(tempFile));
+                if (!fileContent.equals(fileMap.get(file)) && !addMap.containsKey(file)
+                        && !removeMap.containsKey(file)) {
+                    modifyNotStaged.put(file, "modified");
+                }
+            }
+        }
+        modifyNotStaged.forEach((k, v) -> System.out.println(k + " (" + v + ")"));
+        System.out.println();
+        System.out.println("=== Untracked Files ===");
+        Set<String> untracked = new TreeSet<>();
+        List<String> workingFiles = plainFilenamesIn(CWD);
+        for (var file : workingFiles) {
+            if (!addMap.containsKey(file) && !fileMap.containsKey(file)) {
+                untracked.add(file);
+            }
+        }
+        untracked.forEach(System.out::println);
+        System.out.println();
+        save();
+    }
+
+    public static void checkout(String[] args) {
+        load();
+        if (args.length == 3) {
+            String fileName = args[2];
+            checkFileExists(headSha1, fileName);
+        } else if (args.length == 4) {
+            String commitId = args[1];
+            String fileName = args[3];
+            if (checkCommitExists(commitId)) {
+                checkFileExists(expand(commitId), fileName);
+            } else {
+                message("No commit with that id exists.");
+            }
+        } else {
+            String givenBranch = args[1];
+            if (givenBranch.equals(head)) {
+                message("No need to checkout the current branch.");
+            }
+            if (!branch.containsKey(givenBranch)) {
+                message("No such branch exists.");
+            }
+            head = givenBranch;
+            resetCommitId(branch.get(head));
+            save();
+        }
+    }
+
+    private static void resetCommitId(String commitId) {
+        Map<String, String> currentFileMap = Commit.getCommit(head).getFileMap();
+        Map<String, String> givenFileMap = Commit.getCommit(commitId).getFileMap();
+        List<String> workingFiles = plainFilenamesIn(CWD);
+        for (var file : workingFiles) {
+            if (!currentFileMap.containsKey(file) && givenFileMap.containsKey(file)) {
+                message("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
+                System.exit(0);
+            }
+            if (currentFileMap.containsKey(file) && !givenFileMap.containsKey(file)) {
+                restrictedDelete(file);
+            }
+        }
+        givenFileMap.forEach((k, v) ->
+                writeContents(new File(k), readContentsAsString(join(BLOB_DIR, v))));
+        addMap.clear();
+        removeMap.clear();
+    }
+
+    private static String expand(String commitId) {
+        if (commitId.length() == 40) {
+            return commitId;
+        }
+        List<String> commitTree = plainFilenamesIn(COMMIT_DIR);
+        for (String commitSha1 : commitTree) {
+            if (commitId.equals(commitSha1.substring(0, commitId.length()))) {
+                return commitSha1;
+            }
+        }
+        return null;
+    }
+
+    private static boolean checkCommitExists(String commitId) {
+        if (commitId.length() == 40) {
+            return commitIdSet.contains(commitId);
+        } else {
+            return expand(commitId) == null;
+        }
+    }
+
+    private static void checkFileExists(String commitId, String fileName) {
+        Map<String, String> fileMap = Commit.getCommit(commitId).getFileMap();
+        if (!fileMap.containsKey(fileName)) {
+            message("File does not exist in that commit.");
+        } else {
+            String content = readContentsAsString(join(BLOB_DIR, fileMap.get(fileName)));
+            writeContents(new File(fileName), content);
+        }
+    }
+
+    public static void branch(String branchName) {
+        load();
+        branch.keySet().forEach(k -> {
+            if (k.equals(branchName)) {
+                message("A branch with that name already exists.");
+            }
+        });
+        branch.put(branchName, headSha1);
+        save();
+    }
+
+    public static void rmBranch(String branchName) {
+        load();
+        if (!branch.containsKey(branchName)) {
+            message("A branch with that name does not exist.");
+        }
+        if (head.equals(branchName)) {
+            message("Cannot remove the current branch.");
+        }
+        branch.remove(branchName);
+        save();
+    }
+
+    public static void reset(String commitId) {
+        load();
+        if (!checkCommitExists(commitId)) {
+            message("No commit with that id exists.");
+        }
+        resetCommitId(expand(commitId));
+        branch.put(head, commitId);
+        save();
+    }
+
+    public static void merge(String branchName) {
+
+    }
 }
+
+
