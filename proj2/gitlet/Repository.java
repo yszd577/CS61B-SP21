@@ -158,17 +158,13 @@ public class Repository {
         }
         Commit current = new Commit(msg, headSha1);
         if (!addMap.isEmpty()) {
-            for (String fileName: addMap.keySet()) {
-                current.put(fileName, addMap.get(fileName));
-                addMap.remove(fileName);
-            }
+            addMap.forEach(current::put);
         }
+        addMap.clear();
         if (!removeMap.isEmpty()) {
-            for (String fileName : removeMap.keySet()) {
-                current.remove(fileName);
-                removeMap.remove(fileName);
-            }
+            removeMap.forEach(current::put);
         }
+        removeMap.clear();
         File tempFile = join(COMMIT_DIR, "tempCommit");
         writeObject(tempFile, current);
         String commitSha1 = sha1(readContents(tempFile));
