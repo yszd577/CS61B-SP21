@@ -261,10 +261,9 @@ public class Repository {
         }
         load();
         System.out.println("=== Branches ===");
+        System.out.println("*" + head);
         for (String branchName : branch.keySet()) {
-            if (branchName.equals(head)) {
-                System.out.println("*" + branchName);
-            } else {
+            if (!branchName.equals(head)) {
                 System.out.println(branchName);
             }
         }
@@ -313,10 +312,12 @@ public class Repository {
             if (!addMap.containsKey(file) && !fileMap.containsKey(file)) {
                 untracked.add(file);
             }
+            if (removeMap.containsKey(file)) {
+                untracked.add(file);
+            }
         }
         untracked.forEach(System.out::println);
         System.out.println();
-        save();
     }
 
     public static void checkout(String[] args) {
@@ -397,7 +398,7 @@ public class Repository {
         if (commitId.length() == 40) {
             return commitIdSet.contains(commitId);
         } else {
-            return expand(commitId) == null;
+            return expand(commitId) != null;
         }
     }
 
