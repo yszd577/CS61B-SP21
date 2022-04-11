@@ -326,9 +326,17 @@ public class Repository {
         }
         load();
         if (args.length == 3) {
+            if (!args[1].equals("--")) {
+                message("Incorrect operands.");
+                return;
+            }
             String fileName = args[2];
             checkFileExists(headSha1, fileName);
         } else if (args.length == 4) {
+            if (!args[2].equals("--")) {
+                message("Incorrect operands.");
+                return;
+            }
             String commitId = args[1];
             String fileName = args[3];
             if (checkCommitExists(commitId)) {
@@ -353,7 +361,7 @@ public class Repository {
     }
 
     private static void resetCommitId(String commitId) {
-        Map<String, String> currentFileMap = Commit.getCommit(head).getFileMap();
+        Map<String, String> currentFileMap = Commit.getCommit(headSha1).getFileMap();
         Map<String, String> givenFileMap = Commit.getCommit(commitId).getFileMap();
         List<String> workingFiles = plainFilenamesIn(CWD);
         for (var file : workingFiles) {
