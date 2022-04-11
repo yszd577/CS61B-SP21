@@ -152,7 +152,7 @@ public class Repository {
             message("Please enter a commit message.");
             return;
         }
-        if (addMap.isEmpty()) {
+        if (addMap.isEmpty() && removeMap.isEmpty()) {
             message("No changes added to the commit.");
             return;
         }
@@ -162,7 +162,7 @@ public class Repository {
         }
         addMap.clear();
         if (!removeMap.isEmpty()) {
-            removeMap.forEach(current::put);
+            removeMap.keySet().forEach(current::remove);
         }
         removeMap.clear();
         File tempFile = join(COMMIT_DIR, "tempCommit");
