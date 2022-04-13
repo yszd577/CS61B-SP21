@@ -582,8 +582,8 @@ public class Repository {
         sb.append("\n");
         sb.append("=======\n");
         sb.append(getContent(givenBob));
-        sb.append("\n");
-        sb.append(">>>>>>>\n");
+        System.out.println("\n");
+        sb.append(">>>>>>>");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
         String blobSha1 = sha1(content);
