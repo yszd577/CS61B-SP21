@@ -493,6 +493,10 @@ public class Repository {
                         writeContents(new File(name), getContent(givenBlob));
                         addMap.put(name, givenBlob);
                     }
+                    if (!splitBlob.equals(currentBlob) && !splitBlob.equals(givenBlob)
+                        && !currentBlob.equals(givenBlob)) {
+                        mergeContent(name, currentBlob, givenBlob);
+                    }
                 } else if (currentMap.containsKey(name)) {
                     if (splitBlob.equals(currentBlob)) {
                         restrictedDelete(name);
@@ -517,7 +521,7 @@ public class Repository {
                 }
             }
         }
-        commitBase("Merged " + givenBranch + " into " + head + ".", givenBranch);
+        commitBase("Merged " + givenBranch + " into " + head + ".", branch.get(givenBranch));
         save();
     }
 
