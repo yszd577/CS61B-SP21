@@ -493,17 +493,15 @@ public class Repository {
                         writeContents(new File(name), getContent(givenBlob));
                         addMap.put(name, givenBlob);
                     }
-                    if (splitBlob.equals(currentBlob) && !givenMap.containsKey(name)) {
+                } else if (currentMap.containsKey(name)) {
+                    if (splitBlob.equals(currentBlob)) {
                         restrictedDelete(name);
                         removeMap.put(name, currentBlob);
                     }
-                }
-                if (currentMap.containsKey(name) && !givenMap.containsKey(name)
-                    && !splitBlob.equals(currentBlob)) {
-                    mergeContent(name, currentBlob, givenBlob);
-                }
-                if (givenMap.containsKey(name) && !currentMap.containsKey(name)
-                    && !splitBlob.equals(givenBlob)) {
+                    if (!splitBlob.equals(currentBlob)) {
+                        mergeContent(name, currentBlob, givenBlob);
+                    }
+                } else if (givenMap.containsKey(name) && !splitBlob.equals(givenBlob)) {
                     mergeContent(name, currentBlob, givenBlob);
                 }
             } else {
