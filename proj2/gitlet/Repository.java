@@ -147,31 +147,16 @@ public class Repository {
             message("Not in an initialized Gitlet directory.");
             return;
         }
-        load();
         if (msg.length() == 0) {
             message("Please enter a commit message.");
             return;
         }
+        load();
         if (addMap.isEmpty() && removeMap.isEmpty()) {
             message("No changes added to the commit.");
             return;
         }
-        Commit current = new Commit(msg, headSha1);
-        if (!addMap.isEmpty()) {
-            addMap.forEach(current::put);
-        }
-        addMap.clear();
-        if (!removeMap.isEmpty()) {
-            removeMap.keySet().forEach(current::remove);
-        }
-        removeMap.clear();
-        File tempFile = join(COMMIT_DIR, "tempCommit");
-        writeObject(tempFile, current);
-        String commitSha1 = sha1(readContents(tempFile));
-        tempFile.renameTo(join(COMMIT_DIR, commitSha1));
-        headSha1 = commitSha1;
-        commitIdSet.add(headSha1);
-        branch.put(head, headSha1);
+        commitBase(msg, null);
         save();
     }
 
@@ -204,10 +189,11 @@ public class Repository {
         while (true) {
             System.out.println("===");
             System.out.println("commit " + headSha1);
-            // merge???????
-            // if (current.getAnotherParent() != null) {
-            // System.out.println("Merge: ");
-            // }
+            if (current.getAnotherParent() != null) {
+                System.out.print("Merge: ");
+                System.out.println(current.getParent().substring(0, 7) + " "
+                        + current.getAnotherParent().substring(0, 7));
+            }
             System.out.println(current.getDate());
             System.out.println(current.getMessage());
             System.out.println();
@@ -460,11 +446,149 @@ public class Repository {
         save();
     }
 
-    public static void merge(String branchName) {
+    public static void merge(String givenBranch) {
         if (!GITLET_DIR.exists()) {
             message("Not in an initialized Gitlet directory.");
             return;
         }
+        load();
+        if (!addMap.isEmpty() || !removeMap.isEmpty()) {
+            message("You have uncommitted changes.");
+            return;
+        }
+        if (!branch.containsKey(givenBranch)) {
+            message("A branch with that name does not exist.");
+            return;
+        }
+        if (givenBranch.equals(head)) {
+            message("Cannot merge a branch with itself.");
+            return;
+        }
+        String splitSha1 = getSplitCommit(givenBranch);
+        if (splitSha1.equals(branch.get(givenBranch))) {
+            message("Given branch is an ancestor of the current branch.");
+            return;
+        }
+        if (splitSha1.equals(headSha1)) {
+            resetCommitId(branch.get(givenBranch));
+            message("Current branch fast-forwarded.");
+            return;
+        }
+        Map<String, String> splitMap = Commit.getCommit(splitSha1).getFileMap();
+        Map<String, String> currentMap = Commit.getCommit(headSha1).getFileMap();
+        Map<String, String> givenMap = Commit.getCommit(branch.get(givenBranch)).getFileMap();
+        Set<String> fileSet = new HashSet<>();
+        String splitBlob;
+        String givenBlob;
+        String currentBlob;
+        fileSet.addAll(currentMap.keySet());
+        fileSet.addAll(givenMap.keySet());
+        for (String name : fileSet) {
+            splitBlob = splitMap.get(name);
+            givenBlob = givenMap.get(name);
+            currentBlob = splitMap.get(name);
+            if (splitMap.containsKey(name)) {
+                if (givenMap.containsKey(name) && currentMap.containsKey(name)) {
+                    if (splitBlob.equals(currentBlob) && !splitBlob.equals(givenBlob)) {
+                        writeContents(new File(name), getContent(givenBlob));
+                        addMap.put(name, givenBlob);
+                    }
+                    if (splitBlob.equals(currentBlob) && !givenMap.containsKey(name)) {
+                        restrictedDelete(name);
+                        removeMap.put(name, currentBlob);
+                    }
+                }
+                if (currentMap.containsKey(name) && !givenMap.containsKey(name)
+                    && !splitBlob.equals(currentBlob)) {
+                    mergeContent(name, currentBlob, givenBlob);
+                }
+                if (givenMap.containsKey(name) && !currentMap.containsKey(name)
+                    && !splitBlob.equals(givenBlob)) {
+                    mergeContent(name, currentBlob, givenBlob);
+                }
+            } else {
+                if (givenMap.containsKey(name) && !currentMap.containsKey(name)) {
+                    givenBlob = givenMap.get(name);
+                    writeContents(new File(name), getContent(givenBlob));
+                    addMap.put(name, givenBlob);
+                }
+                if (givenMap.containsKey(name) && currentMap.containsKey(name)) {
+                    if (!givenBlob.equals(currentBlob)) {
+                        mergeContent(name, currentBlob, givenBlob);
+                    }
+                }
+            }
+        }
+        commitBase("Merged " + givenBranch + " into " + head + ".", givenBranch);
+        save();
+    }
+
+    private static void commitBase(String msg, String another) {
+        Commit current = new Commit(msg, headSha1);
+        current.setAnotherParent(another);
+        if (!addMap.isEmpty()) {
+            addMap.forEach(current::put);
+        }
+        addMap.clear();
+        if (!removeMap.isEmpty()) {
+            removeMap.keySet().forEach(current::remove);
+        }
+        removeMap.clear();
+        File tempFile = join(COMMIT_DIR, "tempCommit");
+        writeObject(tempFile, current);
+        String commitSha1 = sha1(readContents(tempFile));
+        tempFile.renameTo(join(COMMIT_DIR, commitSha1));
+        headSha1 = commitSha1;
+        commitIdSet.add(headSha1);
+        branch.put(head, headSha1);
+    }
+
+    private static String getContent(String name) {
+        File file = join(BLOB_DIR, name);
+        if (!file.exists()) {
+            return "";
+        }
+        return readContentsAsString(file);
+    }
+
+    private static String getSplitCommit(String givenBranch) {
+        Set<String> hashSet = new HashSet<>();
+        String commitSha1 = branch.get(givenBranch);
+        while (true) {
+            Commit current = Commit.getCommit(commitSha1);
+            hashSet.add(commitSha1);
+            if (current.getParent() == null) {
+                break;
+            }
+            commitSha1 = current.getParent();
+        }
+        commitSha1 = headSha1;
+        while (true) {
+            Commit current = Commit.getCommit(commitSha1);
+            if (hashSet.contains(commitSha1)) {
+                return commitSha1;
+            }
+            commitSha1 = current.getParent();
+        }
+    }
+
+
+    private static void mergeContent(String name, String currentBlob, String givenBob) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<<<<<<< HEAD\n");
+        sb.append(getContent(givenBob));
+        sb.append("\n");
+        sb.append("=======\n");
+        sb.append(getContent(givenBob));
+        sb.append("\n");
+        sb.append(">>>>>>>");
+        sb.append("\n");
+        String content = sb.toString();
+        writeContents(new File(name), sb.toString());
+        String blobSha1 = sha1(content);
+        writeContents(join(BLOB_DIR, blobSha1), content);
+        addMap.put(name, content);
+        System.out.println("Encountered a merge conflict.");
     }
 }
 

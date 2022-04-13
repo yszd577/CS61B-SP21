@@ -103,4 +103,8 @@ public class Commit implements Serializable {
     public String getAnotherParent() {
         return anotherParent;
     }
+
+    public void setAnotherParent(String another) {
+        anotherParent = another;
+    }
 }
