@@ -579,10 +579,8 @@ public class Repository {
         StringBuilder sb = new StringBuilder();
         sb.append("<<<<<<< HEAD\n");
         sb.append(getContent(currentBlob));
-        sb.append("\n");
         sb.append("=======\n");
         sb.append(getContent(givenBob));
-        sb.append("\n");
         sb.append(">>>>>>>");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
