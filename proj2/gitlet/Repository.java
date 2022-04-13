@@ -582,7 +582,7 @@ public class Repository {
         sb.append("\n");
         sb.append("=======\n");
         sb.append(getContent(givenBob));
-        System.out.println("\n");
+        sb.append("\n");
         sb.append(">>>>>>>");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
