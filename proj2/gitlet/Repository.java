@@ -477,7 +477,7 @@ public class Repository {
         Map<String, String> splitMap = Commit.getCommit(splitSha1).getFileMap();
         Map<String, String> currentMap = Commit.getCommit(headSha1).getFileMap();
         Map<String, String> givenMap = Commit.getCommit(branch.get(givenBranch)).getFileMap();
-        Set<String> fileSet = new HashSet<>();
+        Set<String> fileSet = new TreeSet<>();
         String splitBlob;
         String givenBlob;
         String currentBlob;
@@ -486,7 +486,7 @@ public class Repository {
         for (String name : fileSet) {
             splitBlob = splitMap.get(name);
             givenBlob = givenMap.get(name);
-            currentBlob = splitMap.get(name);
+            currentBlob = currentMap.get(name);
             if (splitMap.containsKey(name)) {
                 if (givenMap.containsKey(name) && currentMap.containsKey(name)) {
                     if (splitBlob.equals(currentBlob) && !splitBlob.equals(givenBlob)) {
@@ -578,19 +578,18 @@ public class Repository {
     private static void mergeContent(String name, String currentBlob, String givenBob) {
         StringBuilder sb = new StringBuilder();
         sb.append("<<<<<<< HEAD\n");
-        sb.append(getContent(givenBob));
+        sb.append(getContent(currentBlob));
         sb.append("\n");
         sb.append("=======\n");
         sb.append(getContent(givenBob));
         sb.append("\n");
-        sb.append(">>>>>>>");
-        sb.append("\n");
+        sb.append(">>>>>>>\n");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
         String blobSha1 = sha1(content);
         writeContents(join(BLOB_DIR, blobSha1), content);
         addMap.put(name, content);
-        System.out.println("Encountered a merge conflict.");
+        message("Encountered a merge conflict.");
     }
 }
 
