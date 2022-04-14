@@ -20,16 +20,13 @@ public class Main {
         int len = args.length;
         switch (firstArg) {
             case "init":
-                // TODO: handle the `init` command
                 checkOperands(1, len);
                 Repository.init();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
                 checkOperands(2, len);
                 Repository.add(args[1]);
                 break;
-            // TODO: FILL THE REST IN
             case "commit":
                 checkOperands(2, len);
                 Repository.commit(args[1]);

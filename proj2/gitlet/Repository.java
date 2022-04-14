@@ -8,17 +8,15 @@ import java.util.*;
 
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Raiden Ei
  */
 public class Repository {
     /**
-     * TODO: add instance variables here.
+     *
      *
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that
@@ -57,8 +55,6 @@ public class Repository {
 
     /** Commit id set file. */
     public static final File COMMITID = join(GITLET_DIR, "commitId");
-
-    /* TODO: fill in the rest of this class. */
 
 
     public static void init() {
@@ -549,8 +545,9 @@ public class Repository {
         File file = join(BLOB_DIR, name);
         if (!file.exists()) {
             return "";
+        } else {
+            return readContentsAsString(file);
         }
-        return readContentsAsString(file);
     }
 
     private static String getSplitCommit(String givenBranch) {
