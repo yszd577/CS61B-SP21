@@ -577,11 +577,11 @@ public class Repository {
 
     private static void mergeContent(String name, String currentBlob, String givenBob) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<<<<<<< HEAD\r");
+        sb.append("<<<<<<< HEAD\n");
         sb.append(getContent(currentBlob));
-        sb.append("=======\r");
+        sb.append("=======\n");
         sb.append(getContent(givenBob));
-        sb.append(">>>>>>>");
+        sb.append(">>>>>>>\n");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
         String blobSha1 = sha1(content);
