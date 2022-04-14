@@ -577,9 +577,9 @@ public class Repository {
 
     private static void mergeContent(String name, String currentBlob, String givenBob) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<<<<<<< HEAD\n");
+        sb.append("<<<<<<< HEAD\r");
         sb.append(getContent(currentBlob));
-        sb.append("=======\n");
+        sb.append("=======\r");
         sb.append(getContent(givenBob));
         sb.append(">>>>>>>");
         String content = sb.toString();
