@@ -577,16 +577,16 @@ public class Repository {
 
     private static void mergeContent(String name, String currentBlob, String givenBob) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<<<<<<< HEAD");
+        sb.append("<<<<<<< HEAD\n");
         sb.append(getContent(currentBlob));
-        sb.append("=======");
+        sb.append("=======\n");
         sb.append(getContent(givenBob));
         sb.append(">>>>>>>");
         String content = sb.toString();
         writeContents(new File(name), sb.toString());
         String blobSha1 = sha1(content);
         writeContents(join(BLOB_DIR, blobSha1), content);
-        addMap.put(name, content);
+        addMap.put(name, blobSha1);
         message("Encountered a merge conflict.");
     }
 }
