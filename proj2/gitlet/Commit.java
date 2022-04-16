@@ -29,8 +29,6 @@ public class Commit implements Serializable {
     private Date timestamp;
     /** The first parent SHA1 of this Commit. */
     private String parent;
-    /** The first pointer to parent of this Commit. */
-    private transient Commit parent1;
     /** The second parent SHA1 of this Commit. */
     private String anotherParent;
     /** The map between name and SHA1 of content. */
@@ -43,6 +41,7 @@ public class Commit implements Serializable {
         timestamp = new Date(0);
         fileMap = new HashMap<>();
         parent = null;
+        anotherParent = null;
     }
 
     /** The ordinary commit. */
@@ -52,7 +51,6 @@ public class Commit implements Serializable {
         parent = head;
         File parentCommitSha1 = join(COMMIT_DIR, head);
         Commit parentCommit = readObject(parentCommitSha1, Commit.class);
-        parent1 = parentCommit;
         fileMap = parentCommit.fileMap;
     }
 

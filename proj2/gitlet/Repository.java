@@ -470,9 +470,16 @@ public class Repository {
             message("Current branch fast-forwarded.");
             return;
         }
-        Map<String, String> splitMap = Commit.getCommit(splitSha1).getFileMap();
         Map<String, String> currentMap = Commit.getCommit(headSha1).getFileMap();
+        Map<String, String> splitMap = Commit.getCommit(splitSha1).getFileMap();
         Map<String, String> givenMap = Commit.getCommit(branch.get(givenBranch)).getFileMap();
+        List<String> workingFiles = plainFilenamesIn(CWD);
+        for (var file : workingFiles) {
+            if (!currentMap.containsKey(file) && givenMap.containsKey(file)) {
+                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                return;
+            }
+        }
         Set<String> fileSet = new TreeSet<>();
         String splitBlob;
         String givenBlob;
@@ -542,33 +549,48 @@ public class Repository {
     }
 
     private static String getContent(String name) {
-        File file = join(BLOB_DIR, name);
-        if (!file.exists()) {
+        if (name == null) {
             return "";
-        } else {
-            return readContentsAsString(file);
         }
+        return readContentsAsString(join(BLOB_DIR, name));
     }
 
+
+    // use traverse to find all ancestors, then use bfs to find split
     private static String getSplitCommit(String givenBranch) {
         Set<String> hashSet = new HashSet<>();
-        String commitSha1 = branch.get(givenBranch);
-        while (true) {
-            Commit current = Commit.getCommit(commitSha1);
-            hashSet.add(commitSha1);
-            if (current.getParent() == null) {
-                break;
+        String currentSha1 = branch.get(givenBranch);
+        Queue<String> fringe = new ArrayDeque<>();
+        fringe.add(currentSha1);
+        while (!fringe.isEmpty()) {
+            String commitSha1 = fringe.remove();
+            String parent = Commit.getCommit(commitSha1).getParent();
+            String another = Commit.getCommit(commitSha1).getAnotherParent();
+            if (parent != null) {
+                hashSet.add(parent);
+                fringe.add(parent);
             }
-            commitSha1 = current.getParent();
+            if (another != null) {
+                hashSet.add(another);
+                fringe.add(another);
+            }
         }
-        commitSha1 = headSha1;
-        while (true) {
-            Commit current = Commit.getCommit(commitSha1);
+        fringe.add(headSha1);
+        while (!fringe.isEmpty()) {
+            String commitSha1 = fringe.remove();
             if (hashSet.contains(commitSha1)) {
                 return commitSha1;
             }
-            commitSha1 = current.getParent();
+            String parent = Commit.getCommit(commitSha1).getParent();
+            String another = Commit.getCommit(commitSha1).getAnotherParent();
+            if (parent != null) {
+                fringe.add(parent);
+            }
+            if (another != null) {
+                fringe.add(another);
+            }
         }
+        return null;
     }
 
 
