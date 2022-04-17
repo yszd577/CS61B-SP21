@@ -476,20 +476,18 @@ public class Repository {
         List<String> workingFiles = plainFilenamesIn(CWD);
         for (var file : workingFiles) {
             if (!currentMap.containsKey(file) && givenMap.containsKey(file)) {
-                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                message("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
                 return;
             }
         }
         Set<String> fileSet = new TreeSet<>();
-        String splitBlob;
-        String givenBlob;
-        String currentBlob;
         fileSet.addAll(currentMap.keySet());
         fileSet.addAll(givenMap.keySet());
         for (String name : fileSet) {
-            splitBlob = splitMap.get(name);
-            givenBlob = givenMap.get(name);
-            currentBlob = currentMap.get(name);
+            String splitBlob = splitMap.get(name);
+            String givenBlob = givenMap.get(name);
+            String currentBlob = currentMap.get(name);
             if (splitMap.containsKey(name)) {
                 if (givenMap.containsKey(name) && currentMap.containsKey(name)) {
                     if (splitBlob.equals(currentBlob) && !splitBlob.equals(givenBlob)) {
@@ -556,11 +554,11 @@ public class Repository {
     }
 
 
-    // use traverse to find all ancestors, then use bfs to find split
     private static String getSplitCommit(String givenBranch) {
         Set<String> hashSet = new HashSet<>();
         String currentSha1 = branch.get(givenBranch);
         Queue<String> fringe = new ArrayDeque<>();
+        hashSet.add(currentSha1);
         fringe.add(currentSha1);
         while (!fringe.isEmpty()) {
             String commitSha1 = fringe.remove();
